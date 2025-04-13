@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { FileNode } from '../types/FileNode';
 
 interface EditorProps {
   selectedFile: {
@@ -29,8 +30,8 @@ export default function Editor({ selectedFile }: EditorProps) {
 
     // UserContext의 파일 내용도 함께 업데이트
     if (selectedFile) {
-      setUserFiles(prevFiles => {
-        const updateFileContent = (items: any[]): any[] => {
+      setUserFiles((prevFiles: FileNode[]) => {
+        const updateFileContent = (items: FileNode[]): FileNode[] => {
           return items.map(item => {
             if (item.id === selectedFile.id) {
               return { ...item, content: newContent };
