@@ -1,6 +1,7 @@
 'use client';
 
-import { useUser, FileNode } from '../contexts/UserContext';
+import { useUser } from '../contexts/UserContext';
+import { FileNode } from '../types/FileNode';
 
 interface SaveButtonProps {
   currentFile: { id: string; name: string; content: string } | null;
