@@ -8,13 +8,15 @@ interface SaveButtonProps {
 }
 
 export default function SaveButton({ currentFile }: SaveButtonProps) {
-  const { userFiles, setUserFiles, saveUserData, hasUnsavedChanges, userId } = useUser();
+  const { userFiles, setUserFiles, saveUserData, hasUnsavedChanges, userId, setHasUnsavedChanges } = useUser();
 
   const handleSave = () => {
     if (!currentFile) return;
 
     // 먼저 파일 데이터 저장
     saveUserData();
+    // 저장 후 변경사항 없음으로 설정
+    setHasUnsavedChanges(false);
 
     // 현재 날짜와 시간
     const now = new Date();
@@ -127,10 +129,11 @@ export default function SaveButton({ currentFile }: SaveButtonProps) {
   return (
     <button
       onClick={handleSave}
+      disabled={!hasUnsavedChanges}
       className={`px-4 py-2 rounded text-white transition-colors flex items-center space-x-2
         ${hasUnsavedChanges 
           ? 'bg-blue-600 hover:bg-blue-500' 
-          : 'bg-yellow-500 hover:bg-yellow-400'}`}
+          : 'bg-yellow-500 cursor-not-allowed'}`}
     >
       <span>{hasUnsavedChanges ? '💾' : '✓'}</span>
       <span>{hasUnsavedChanges ? '저장하기' : '저장됨'}</span>

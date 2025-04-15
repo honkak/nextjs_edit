@@ -10,23 +10,22 @@ interface EditorProps {
     name: string;
     content: string;
   } | null;
+  onContentChange?: (newContent: string) => void;
 }
 
-export default function Editor({ selectedFile }: EditorProps) {
-  const [content, setContent] = useState('');
-  const { userFiles, setUserFiles } = useUser();
-
-  useEffect(() => {
-    if (selectedFile) {
-      setContent(selectedFile.content || '');
-    } else {
-      setContent('');
-    }
-  }, [selectedFile]);
+export default function Editor({ selectedFile, onContentChange }: EditorProps) {
+  const { userFiles, setUserFiles, setHasUnsavedChanges } = useUser();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    setContent(newContent);
+    
+    // 변경사항 있음으로 설정
+    setHasUnsavedChanges(true);
+    
+    // 부모 컴포넌트에 변경 알림
+    if (onContentChange) {
+      onContentChange(newContent);
+    }
 
     // UserContext의 파일 내용도 함께 업데이트
     if (selectedFile) {
@@ -49,26 +48,13 @@ export default function Editor({ selectedFile }: EditorProps) {
 
   return (
     <div className="h-full flex flex-col bg-[#1e1e1e] text-white">
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold">편집기</h2>
-          {selectedFile && (
-            <div className="text-sm text-gray-400 mt-1">
-              현재 파일: {selectedFile.name}
-            </div>
-          )}
-        </div>
-        <div className="text-sm text-gray-400">
-          글자수: {content.length.toLocaleString()}자
-        </div>
-      </div>
       <div className="flex-1 p-4">
         <textarea
-          value={content}
+          value={selectedFile?.content || ''}
           onChange={handleChange}
-          className="w-full h-full bg-[#252525] text-white p-4 rounded-lg resize-none focus:outline-none"
+          className="w-full h-full bg-[#252525] text-white p-4 rounded-lg resize-none focus:outline-none scrollbar-none"
           placeholder={selectedFile ? "파일을 편집하세요..." : "파일을 선택하세요..."}
-          style={{ fontFamily: 'Malgun Gothic', minHeight: 'calc(100vh - 200px)' }}
+          style={{ fontFamily: 'Malgun Gothic', minHeight: 'calc((100vh - 200px) * 0.8)' }}
         />
       </div>
     </div>

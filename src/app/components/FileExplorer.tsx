@@ -17,12 +17,12 @@ interface FileNode {
 }
 
 export default function FileExplorer({ onFileSelect, selectedFile }: FileExplorerProps) {
-  const { userFiles, setUserFiles } = useUser();
+  const { userFiles, setUserFiles, setHasUnsavedChanges } = useUser();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [draggedItem, setDraggedItem] = useState<{ id: string; type: 'file' | 'folder' } | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState('');
-  const [showInput, setShowInput] = useState(false);
+  const [showInput, setShowInput] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [inputType, setInputType] = useState<'file' | 'folder'>('file');
   const [contextMenu, setContextMenu] = useState<{
@@ -53,31 +53,64 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
 
   const addNewItem = (type: 'file' | 'folder', parentId?: string) => {
     setInputType(type);
-    setShowInput(true);
+    setShowInput(parentId || 'root');
     setNewItemName('');
-    setSelectedFolderId(parentId || null);
+    setSelectedFolderId(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
 
+    const finalName = inputType === 'file' ? (newItemName.endsWith('.txt') ? newItemName : `${newItemName}.txt`) : newItemName;
+
+    if (inputType === 'file' && (finalName === '임시.txt' || newItemName === '임시')) {
+      alert("'임시.txt'는 생성할 수 없는 파일명입니다.");
+      return;
+    }
+
+    if (selectedFolderId === showInput && showInput !== 'root') {
+      const updateItemName = (items: FileNode[]): FileNode[] => {
+        return items.map(item => {
+          if (item.id === showInput) {
+            return {
+              ...item,
+              name: finalName
+            };
+          }
+          if (item.type === 'folder' && item.children) {
+            return {
+              ...item,
+              children: updateItemName(item.children)
+            };
+          }
+          return item;
+        });
+      };
+
+      setUserFiles(prev => updateItemName(prev));
+      setHasUnsavedChanges(true);
+      setShowInput(null);
+      setNewItemName('');
+      return;
+    }
+
     const newItem: FileNode = {
       id: Date.now().toString(),
-      name: inputType === 'file' ? `${newItemName}.txt` : newItemName,
+      name: finalName,
       type: inputType,
       children: inputType === 'folder' ? [] : undefined,
       content: inputType === 'file' ? '' : undefined
     };
 
     setUserFiles(prev => {
-      if (!selectedFolderId) {
+      if (showInput === 'root') {
         return [...prev, newItem];
       }
 
       const addToFolder = (items: FileNode[]): FileNode[] => {
         return items.map(item => {
-          if (item.id === selectedFolderId && item.type === 'folder') {
+          if (item.id === showInput && item.type === 'folder') {
             return {
               ...item,
               children: [...(item.children || []), newItem]
@@ -96,7 +129,8 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
       return addToFolder([...prev]);
     });
 
-    setShowInput(false);
+    setHasUnsavedChanges(true);
+    setShowInput(null);
     setNewItemName('');
     if (inputType === 'folder') {
       setExpandedFolders(prev => {
@@ -197,22 +231,18 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
     };
 
     setUserFiles(prevFiles => {
-      // 이동할 파일 찾기
       const itemToMove = findItem([...prevFiles], draggedItemId);
       if (!itemToMove || itemToMove.type === 'folder') return prevFiles;
 
-      // 새로운 파일 생성 (기존 파일과 동일한 내용)
       const newFile: FileNode = {
-        id: Date.now().toString(), // 새로운 ID 생성
+        id: Date.now().toString(),
         name: itemToMove.name,
         type: 'file',
-        content: itemToMove.content // 기존 파일의 내용을 그대로 복사
+        content: itemToMove.content
       };
 
-      // 새로운 파일을 먼저 추가
       const filesWithNewItem = addItem([...prevFiles], newFile, targetFolderId);
 
-      // 내용이 정확히 복사되었는지 확인
       const verifyContent = (items: FileNode[]): boolean => {
         for (const item of items) {
           if (item.id === newFile.id) {
@@ -225,14 +255,11 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
         return false;
       };
 
-      // 내용이 정확히 복사되었는지 확인
       const isContentCopied = verifyContent(filesWithNewItem);
 
-      // 내용이 정확히 복사되었다면 기존 파일 삭제
       if (isContentCopied) {
         const updatedFiles = removeItem(filesWithNewItem, draggedItemId);
         
-        // Editor 컴포넌트의 상태도 업데이트
         if (selectedFile && selectedFile.id === draggedItemId) {
           onFileSelect({
             id: newFile.id,
@@ -241,10 +268,10 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
           });
         }
         
+        setHasUnsavedChanges(true);
         return updatedFiles;
       }
 
-      // 내용이 복사되지 않았다면 기존 파일 유지
       return prevFiles;
     });
 
@@ -252,7 +279,6 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
     setDragOverFolder(null);
   };
 
-  // 컨텍스트 메뉴 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
@@ -266,7 +292,6 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
 
   const handleContextMenu = (e: React.MouseEvent, item: FileNode) => {
     e.preventDefault();
-    // 백업저장 폴더와 임시.txt 파일은 컨텍스트 메뉴를 표시하지 않음
     if (item.name === '백업저장' || item.name === '임시.txt') {
       return;
     }
@@ -293,7 +318,19 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
       });
     };
 
-    setUserFiles(prev => removeItem([...prev], item.id));
+    if (item.type === 'folder') {
+      const updatedFiles = removeItem(userFiles, item.id);
+      setUserFiles(updatedFiles);
+      setHasUnsavedChanges(true);
+    } else {
+      const updatedFiles = removeItem(userFiles, item.id);
+      setUserFiles(updatedFiles);
+      setHasUnsavedChanges(true);
+      
+      if (selectedFile && selectedFile.id === item.id) {
+        onFileSelect({ id: '', name: '', content: '' });
+      }
+    }
     setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
@@ -302,7 +339,7 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
     
     setInputType(item.type);
     setNewItemName(item.type === 'file' ? item.name.replace('.txt', '') : item.name);
-    setShowInput(true);
+    setShowInput(item.id);
     setSelectedFolderId(item.id);
     setContextMenu(prev => ({ ...prev, visible: false }));
   };
@@ -315,21 +352,23 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
       return (
         <div key={item.id} className="relative group">
           <div
-            className={`flex items-center py-1 px-2 hover:bg-gray-700 rounded cursor-pointer ${
-              draggedItem?.id === item.id ? 'opacity-50' : ''
-            } ${
-              dragOverFolder === item.id ? 'bg-blue-900' : ''
+            className={`flex items-center p-2 hover:bg-gray-700 rounded cursor-pointer group ${
+              selectedFile?.id === item.id ? 'bg-gray-700' : ''
             }`}
-            draggable={item.type === 'file'}
-            onDragStart={(e) => handleDragStart(e, { id: item.id, type: item.type })}
-            onDragOver={(e) => handleDragOver(e, item.type === 'folder' ? item.id : undefined)}
+            draggable={item.type === 'file' && item.name !== '임시.txt'}
+            onDragStart={(e) => handleDragStart(e, item)}
+            onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, item.type === 'folder' ? item.id : null)}
             onClick={() => {
               if (item.type === 'folder') {
                 toggleFolder(item.id);
-              } else {
-                onFileSelect({ id: item.id, name: item.name, content: item.content || '' });
+              } else if (item.type === 'file' && item.name !== '임시.txt') {
+                onFileSelect({
+                  id: item.id,
+                  name: item.name,
+                  content: item.content || ''
+                });
               }
             }}
             onContextMenu={(e) => handleContextMenu(e, item)}
@@ -351,13 +390,56 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
               ) : (
                 <span className="mr-1">📄</span>
               )}
-              <span className={`text-sm ${
-                item.type === 'file' && 
-                items.find(f => f.type === 'folder' && f.name === '백업저장')?.id === 
-                items.find(f => f.children?.some(child => child.id === item.id))?.id
-                ? 'text-[0.7em]' 
-                : ''
-              }`}>{item.name}</span>
+              {showInput === item.id && selectedFolderId === item.id ? (
+                <div className="relative inline-block">
+                  <input
+                    type="text"
+                    value={newItemName}
+                    onChange={(e) => {
+                      setNewItemName(e.target.value);
+                      const hiddenSpan = document.getElementById('hidden-span');
+                      if (hiddenSpan) {
+                        const width = hiddenSpan.offsetWidth;
+                        const input = e.target;
+                        input.style.width = `${width + 30}px`;
+                      }
+                    }}
+                    onBlur={handleSubmit}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      } else if (e.key === 'Escape') {
+                        setShowInput(null);
+                        setNewItemName('');
+                      }
+                    }}
+                    className="bg-gray-600 text-white px-1 rounded text-sm outline-none min-w-[50px]"
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: `${newItemName.length * 8 + 30}px` }}
+                  />
+                  <span
+                    id="hidden-span"
+                    className="absolute invisible whitespace-pre"
+                    style={{
+                      font: 'inherit',
+                      fontSize: '0.875rem',
+                      padding: '0 1px'
+                    }}
+                  >
+                    {newItemName}
+                  </span>
+                </div>
+              ) : (
+                <span className={`text-sm ${
+                  item.type === 'file' && 
+                  items.find(f => f.type === 'folder' && f.name === '백업저장')?.id === 
+                  items.find(f => f.children?.some(child => child.id === item.id))?.id
+                  ? 'text-[0.7em]' 
+                  : ''
+                }`}>{item.name}</span>
+              )}
             </div>
             {item.type === 'folder' && (
               <div className="hidden group-hover:flex space-x-1 ml-auto" onClick={e => e.stopPropagation()}>
@@ -382,6 +464,26 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
               </div>
             )}
           </div>
+          {showInput === item.id && selectedFolderId !== item.id && (
+            <form onSubmit={handleSubmit} className="ml-8 mt-1">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  placeholder={inputType === 'folder' ? "폴더 이름" : "파일 이름"}
+                  className="flex-1 px-2 py-1 text-sm bg-gray-700 rounded text-white"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  생성
+                </button>
+              </div>
+            </form>
+          )}
           {item.type === 'folder' && expandedFolders.has(item.id) && item.children && (
             <div className="ml-2">
               {renderFileTree(item.children, level + 1)}
@@ -395,7 +497,7 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
   return (
     <div className="h-full flex flex-col">
       <div className="bg-[#1e1e1e] text-white p-2 border-b border-gray-800 flex justify-between items-center">
-        <h2 className="text-sm font-semibold">파일 탐색기</h2>
+        <h2 className="text-white text-base font-semibold">파일탐색기</h2>
         <div className="space-x-2">
           <button
             onClick={() => addNewItem('folder')}
@@ -412,7 +514,7 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
         </div>
       </div>
 
-      {showInput && (
+      {showInput === 'root' && (
         <form onSubmit={handleSubmit} className="p-2 border-b border-gray-800">
           <div className="flex space-x-2">
             <input

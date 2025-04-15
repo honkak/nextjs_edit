@@ -3,24 +3,35 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FileNode } from '../types/FileNode';
 
-interface UserContextType {
-  userId: string;
+export interface UserContextType {
+  userId: string | null;
   setUserId: (id: string) => void;
   userFiles: FileNode[];
   setUserFiles: React.Dispatch<React.SetStateAction<FileNode[]>>;
-  hasUnsavedChanges: boolean;
   saveUserData: () => void;
-  loadUserData: (id: string) => Promise<void>;
+  loadUserData: (userId: string) => Promise<void>;
   isLoading: boolean;
+  hasUnsavedChanges: boolean;
+  setHasUnsavedChanges: (value: boolean) => void;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+export const UserContext = createContext<UserContextType>({
+  userId: null,
+  setUserId: () => {},
+  userFiles: [],
+  setUserFiles: () => {},
+  saveUserData: () => {},
+  loadUserData: async () => {},
+  isLoading: false,
+  hasUnsavedChanges: false,
+  setHasUnsavedChanges: () => {},
+});
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [userId, setUserId] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [userFiles, setUserFiles] = useState<FileNode[]>([]);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // 로컬 스토리지에서 사용자 ID 불러오기
   useEffect(() => {
@@ -38,13 +49,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setHasUnsavedChanges(false);
     }
   }, [userId]);
-
-  // 파일 데이터가 변경될 때마다 unsaved 상태로 표시
-  useEffect(() => {
-    if (userId && userFiles.length > 0) {
-      setHasUnsavedChanges(true);
-    }
-  }, [userFiles, userId]);
 
   const saveUserData = () => {
     if (userId) {
@@ -92,15 +96,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ 
-      userId, 
-      setUserId, 
-      userFiles, 
+    <UserContext.Provider value={{
+      userId,
+      setUserId,
+      userFiles,
       setUserFiles,
-      hasUnsavedChanges,
       saveUserData,
       loadUserData,
-      isLoading
+      isLoading,
+      hasUnsavedChanges,
+      setHasUnsavedChanges,
     }}>
       {children}
     </UserContext.Provider>
