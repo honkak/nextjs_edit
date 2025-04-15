@@ -355,8 +355,14 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
             className={`flex items-center p-2 hover:bg-gray-700 rounded cursor-pointer group ${
               selectedFile?.id === item.id ? 'bg-gray-700' : ''
             }`}
-            draggable={item.type === 'file' && item.name !== '임시.txt'}
-            onDragStart={(e) => handleDragStart(e, item)}
+            draggable={item.type === 'file' && item.name !== '임시.txt' && item.name !== '백업저장'}
+            onDragStart={(e) => {
+              if (item.name === '임시.txt' || item.name === '백업저장') {
+                e.preventDefault();
+                return;
+              }
+              handleDragStart(e, item);
+            }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, item.type === 'folder' ? item.id : null)}
@@ -474,6 +480,14 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
                   placeholder={inputType === 'folder' ? "폴더 이름" : "파일 이름"}
                   className="flex-1 px-2 py-1 text-sm bg-gray-700 rounded text-white"
                   autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setShowInput(null);
+                      setNewItemName('');
+                      setInputType('file');
+                    }
+                  }}
                 />
                 <button
                   type="submit"
@@ -496,7 +510,7 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
 
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-[#1e1e1e] text-white p-2 border-b border-gray-800 flex justify-between items-center">
+      <div className="bg-[#1e1e1e] text-white p-4 border-b border-gray-700 flex justify-between items-center">
         <h2 className="text-white text-base font-semibold">파일탐색기</h2>
         <div className="space-x-2">
           <button
@@ -524,6 +538,14 @@ export default function FileExplorer({ onFileSelect, selectedFile }: FileExplore
               placeholder={inputType === 'folder' ? "폴더 이름" : "파일 이름"}
               className="flex-1 px-2 py-1 text-sm bg-gray-700 rounded text-white"
               autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setShowInput(null);
+                  setNewItemName('');
+                  setInputType('file');
+                }
+              }}
             />
             <button
               type="submit"

@@ -20,7 +20,7 @@ export default function History() {
     if (!isOpen) {
       // 사용자 ID가 있을 때만 히스토리 데이터를 가져옴
       if (userId) {
-        const historyData = localStorage.getItem('polaris_history');
+        const historyData = localStorage.getItem('killer_history');
         const parsedHistory = historyData ? JSON.parse(historyData) : [];
         // 최근 10개를 가져오되 역순으로 정렬 (최신이 위로)
         setHistory([...parsedHistory].reverse().slice(0, 10));

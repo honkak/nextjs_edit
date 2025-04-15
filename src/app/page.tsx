@@ -252,90 +252,92 @@ export default function Home() {
   }, [router]);
 
   return (
-    <main className="flex flex-col h-screen overflow-hidden">
+    <main className="flex flex-col h-screen overflow-hidden bg-[#1e1e1e]">
       {/* 상단 타이틀 */}
-      <div className="bg-[#1e1e1e] text-white p-4 border-b border-gray-800 relative flex-shrink-0">
-        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center">
-          <SaveButton currentFile={selectedFile} />
-          <History />
-          <button
-            onClick={() => {
-              const dataStr = JSON.stringify(userFiles);
-              const dataBlob = new Blob([dataStr], { type: 'application/json' });
-              const url = URL.createObjectURL(dataBlob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `PolarisDoc_${userId}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(url);
-            }}
-            disabled={!userId}
-            className={`ml-2 px-3 py-1 text-sm rounded text-white transition-colors ${
-              userId ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
-            }`}
-          >
-            내보내기
-          </button>
-          <label className={`ml-2 px-3 py-1 text-sm rounded text-white transition-colors ${
-            userId ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-600 cursor-not-allowed'
-          }`}>
-            불러오기
-            <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              disabled={!userId}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    try {
-                      const content = e.target?.result as string;
-                      const parsedData = JSON.parse(content);
-                      
-                      // 데이터 구조 검증
-                      if (!Array.isArray(parsedData)) {
-                        throw new Error('올바른 파일 형식이 아닙니다.');
-                      }
-                      
-                      // FileNode 구조 검증
-                      const isValidFileNode = (node: any): boolean => {
-                        if (!node.id || !node.name || !node.type) return false;
-                        if (node.type !== 'file' && node.type !== 'folder') return false;
-                        if (node.type === 'folder' && !Array.isArray(node.children)) return false;
-                        if (node.type === 'folder') {
-                          return node.children.every((child: any) => isValidFileNode(child));
-                        }
-                        return true;
-                      };
-
-                      if (!parsedData.every((node: any) => isValidFileNode(node))) {
-                        throw new Error('파일 구조가 올바르지 않습니다.');
-                      }
-
-                      setUserFiles(parsedData);
-                      alert('파일을 성공적으로 불러왔습니다.');
-                    } catch (error) {
-                      alert('파일을 불러오는 중 오류가 발생했습니다: ' + (error as Error).message);
-                    }
-                  };
-                  reader.readAsText(file);
-                }
+      <div className="flex justify-center bg-[#1e1e1e] text-white border-b border-gray-700 relative flex-shrink-0">
+        <div className="w-[calc(256px+800px+400px)] p-4 relative">
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center">
+            <SaveButton currentFile={selectedFile} />
+            <History />
+            <button
+              onClick={() => {
+                const dataStr = JSON.stringify(userFiles);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `KillerDoc_${userId}_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
               }}
-            />
-          </label>
+              disabled={!userId}
+              className={`ml-2 px-3 py-1 text-sm rounded text-white transition-colors ${
+                userId ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 cursor-not-allowed'
+              }`}
+            >
+              내보내기
+            </button>
+            <label className={`ml-2 px-3 py-1 text-sm rounded text-white transition-colors ${
+              userId ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-600 cursor-not-allowed'
+            }`}>
+              불러오기
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                disabled={!userId}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      try {
+                        const content = e.target?.result as string;
+                        const parsedData = JSON.parse(content);
+                        
+                        // 데이터 구조 검증
+                        if (!Array.isArray(parsedData)) {
+                          throw new Error('올바른 파일 형식이 아닙니다.');
+                        }
+                        
+                        // FileNode 구조 검증
+                        const isValidFileNode = (node: any): boolean => {
+                          if (!node.id || !node.name || !node.type) return false;
+                          if (node.type !== 'file' && node.type !== 'folder') return false;
+                          if (node.type === 'folder' && !Array.isArray(node.children)) return false;
+                          if (node.type === 'folder') {
+                            return node.children.every((child: any) => isValidFileNode(child));
+                          }
+                          return true;
+                        };
+
+                        if (!parsedData.every((node: any) => isValidFileNode(node))) {
+                          throw new Error('파일 구조가 올바르지 않습니다.');
+                        }
+
+                        setUserFiles(parsedData);
+                        alert('파일을 성공적으로 불러왔습니다.');
+                      } catch (error) {
+                        alert('파일을 불러오는 중 오류가 발생했습니다: ' + (error as Error).message);
+                      }
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          <h1 className="text-2xl font-bold text-center">필살 에디터 <span className="text-[0.7em]">: Designed for Web Novel Authors</span></h1>
+          <UserIdInput />
         </div>
-        <h1 className="text-2xl font-bold text-center">폴라리스 문서 편집기</h1>
-        <UserIdInput />
       </div>
 
       {/* 메인 컨텐츠 영역 */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden justify-center">
         {/* 좌측 사이드바 - 파일 탐색기 */}
-        <div className="w-64 bg-[#1e1e1e] text-white overflow-y-auto border-r border-gray-800">
+        <div className="w-64 bg-[#1e1e1e] text-white overflow-y-auto border-l border-r border-gray-700">
           <FileExplorer
             onFileSelect={(file) => setSelectedFile(file)}
             selectedFile={selectedFile}
@@ -343,16 +345,38 @@ export default function Home() {
         </div>
 
         {/* 중앙 에디터 */}
-        <div className="flex-1 flex flex-col bg-[#1e1e1e]">
+        <div className="w-[800px] flex flex-col bg-[#1e1e1e]">
           {/* 편집기 타이틀 영역 */}
-          <div className="p-2 border-b border-gray-800 flex items-center justify-between bg-[#252526]">
+          <div className="p-2 border-b border-gray-700 flex items-center justify-between bg-[#252526]">
             <div className="flex items-center gap-4">
               <h2 className="text-white text-base font-semibold">편집기</h2>
               {selectedFile && (
                 <span className="text-gray-400 text-sm">{selectedFile.name}</span>
               )}
+              <span className="text-gray-400 text-sm">글자수: {selectedFile?.content?.length || 0}자</span>
             </div>
-            <span className="text-gray-400 text-sm">글자수: {selectedFile?.content?.length || 0}자</span>
+            <button
+              onClick={() => {
+                if (selectedFile?.content) {
+                  navigator.clipboard.writeText(selectedFile.content)
+                    .then(() => {
+                      // 복사 성공 시 버튼 스타일 잠시 변경
+                      const button = document.activeElement as HTMLButtonElement;
+                      button.classList.add('text-green-400');
+                      setTimeout(() => {
+                        button.classList.remove('text-green-400');
+                      }, 1000);
+                    })
+                    .catch(err => console.error('복사 실패:', err));
+                }
+              }}
+              className="text-gray-400 hover:text-white transition-colors mr-4"
+              title="전체 내용 복사하기"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </button>
           </div>
           {/* 에디터 본문 영역 */}
           <div className="flex-1 overflow-y-auto scrollbar-none">
@@ -366,15 +390,15 @@ export default function Home() {
               }}
             />
           </div>
-          <div className="h-32 border-t border-gray-800">
+          <div className="h-32 border-t border-gray-700">
             {/* 향후 컨텐츠를 위한 여백 */}
           </div>
         </div>
 
         {/* 우측 AI 채팅 */}
-        <div className="w-96 bg-[#1e1e1e] text-white border-l border-gray-800 flex flex-col overflow-hidden">
+        <div className="w-96 bg-[#1e1e1e] text-white border-l border-r border-gray-700 flex flex-col overflow-hidden">
           <div className="p-4 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <h2 className="text-white text-base font-semibold">AI 비서</h2>
               <div className="flex items-center gap-2">
                 <input
@@ -407,6 +431,7 @@ export default function Home() {
                 </button>
               </div>
             </div>
+            <div className="border-t border-gray-700 my-4 mx-[-1rem]"></div>
             
             <div className="flex-1 overflow-y-auto space-y-4 mb-4">
               {messages.map((message, index) => (
@@ -430,14 +455,14 @@ export default function Home() {
             </div>
 
             {/* AI 비서 채팅 입력 영역 */}
-            <div className="p-4 border-t border-gray-800">
+            <div className="p-3 pt-4 border-t border-gray-700">
               <div className="flex space-x-2">
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="응답하려면 Enter 키를 누르세요"
-                  className="flex-1 px-4 py-2 bg-[#2A2A2A] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="무엇이든 물어보세요"
+                  className="flex-1 pl-3 pr-2 py-1.5 bg-[#2A2A2A] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onKeyDown={(e) => {
                     if (isValidApiKey) {
                       handleKeyDown(e);
@@ -447,7 +472,7 @@ export default function Home() {
                 <button
                   onClick={handleSend}
                   disabled={!isValidApiKey || !inputMessage.trim() || isLoading}
-                  className={`px-4 py-2 rounded-lg text-white ${
+                  className={`px-2 py-1.5 rounded-lg text-white text-sm min-w-[48px] ${
                     isValidApiKey && inputMessage.trim() && !isLoading
                     ? 'bg-blue-500 hover:bg-blue-600' 
                     : 'bg-gray-600 cursor-not-allowed'

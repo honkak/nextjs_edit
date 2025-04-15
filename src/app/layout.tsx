@@ -14,8 +14,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>폴라리스 문서 편집기</title>
-        <meta name="description" content="폴라리스 문서 편집기" />
+        <title>필살 에디터 : 웹소설 작가를 위한</title>
+        <meta name="description" content="웹소설 작가를 위한 문서 편집기" />
+        <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
         <UserProvider>

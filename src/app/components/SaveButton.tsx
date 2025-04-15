@@ -119,10 +119,10 @@ export default function SaveButton({ currentFile }: SaveButtonProps) {
         userId: userId || '-'
       };
 
-      const historyData = localStorage.getItem('polaris_history');
+      const historyData = localStorage.getItem('killer_history');
       const history = historyData ? JSON.parse(historyData) : [];
       history.push(historyEntry);
-      localStorage.setItem('polaris_history', JSON.stringify(history));
+      localStorage.setItem('killer_history', JSON.stringify(history));
     }
   };
 
