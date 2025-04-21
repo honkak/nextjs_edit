@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 
+type CategoryName = keyof AnalysisResult['characters']['categories'];
+
 interface AnalysisResult {
   statistics: {
     charCount: number;
     sentenceCount: number;
     dialogueCount: number;
+    doubleQuoteCount: number;  // 쌍따옴표 대화문 개수
+    singleQuoteCount: number;  // 작은따옴표 대화문 개수
+    specialDialogueCount: number;  // 특수대사 개수
     paragraphCount: number;
     averageSentenceLength: number;
-    doubleQuoteCount: number;
-    singleQuoteCount: number;
-    specialDialogueCount: number;
   };
   style: {
     dialogueRatio: number;
@@ -19,20 +21,34 @@ interface AnalysisResult {
     shortSentenceRatio: number;
     longSentenceRatio: number;
   };
+  endingTypes: {
+    dialogue: {
+      word: string;
+      count: number;
+    }[];
+    description: {
+      word: string;
+      count: number;
+    }[];
+  };
   characters: {
-    names: string[];
+    categories: {
+      인명: string[];
+      조직명: string[];
+      장소명: string[];
+      기술명: string[];
+      사물명: string[];
+      지위명: string[];
+      사건명: string[];
+      기타: string[];
+    };
     frequency: Record<string, number>;
     firstAppearance: Record<string, number>;
-    categories: Record<string, string[]>;
   };
   keywords: {
     word: string;
     count: number;
   }[];
-  endingTypes: {
-    dialogue: { word: string; count: number }[];
-    description: { word: string; count: number }[];
-  };
 }
 
 interface AnalysisBoardProps {
@@ -172,7 +188,7 @@ export default function AnalysisBoard({ analysis }: AnalysisBoardProps) {
 
               {/* 오른쪽 열 - 나머지 카테고리들 */}
               <div className="space-y-4">
-                {['조직명', '장소명', '기술명', '사물명', '지위명', '사건명', '기타'].map((categoryName, index) => (
+                {(['조직명', '장소명', '기술명', '사물명', '지위명', '사건명', '기타'] as CategoryName[]).map((categoryName, index) => (
                   <div key={categoryName} className={`${index > 0 ? 'border-t border-[#2a4a66] pt-4' : ''}`}>
                     <h4 className="font-semibold mb-2">{index + 2}. {categoryName}</h4>
                     <div className="space-y-1">
