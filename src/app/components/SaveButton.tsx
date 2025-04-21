@@ -5,9 +5,10 @@ import { FileNode } from '../types/FileNode';
 
 interface SaveButtonProps {
   currentFile: { id: string; name: string; content: string } | null;
+  onSave: () => void;
 }
 
-export default function SaveButton({ currentFile }: SaveButtonProps) {
+export default function SaveButton({ currentFile, onSave }: SaveButtonProps) {
   const { userFiles, setUserFiles, saveUserData, hasUnsavedChanges, userId, setHasUnsavedChanges } = useUser();
 
   const handleSave = () => {
@@ -124,6 +125,8 @@ export default function SaveButton({ currentFile }: SaveButtonProps) {
       history.push(historyEntry);
       localStorage.setItem('killer_history', JSON.stringify(history));
     }
+
+    onSave();
   };
 
   return (

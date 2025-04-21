@@ -11,6 +11,8 @@ import { useUser } from './contexts/UserContext'
 import { FileNode } from './types/FileNode'
 import { useRouter } from 'next/navigation'
 import { isMobile } from './utils/isMobile'
+import AnalysisBoard from './components/AnalysisBoard'
+import { analyzeText, AnalysisResult } from './utils/textAnalyzer'
 
 interface Message {
   role: 'user' | 'assistant';
@@ -27,6 +29,9 @@ export default function Home() {
   const [isValidApiKey, setIsValidApiKey] = useState(false);
   const [isApiKeyFailed, setIsApiKeyFailed] = useState(false);
   const [prevUserId, setPrevUserId] = useState<string | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
 
   // 사용자별 채팅 메시지 저장
@@ -251,13 +256,49 @@ export default function Home() {
     }
   }, [router]);
 
+  const handleSave = () => {
+    if (userId) {
+      localStorage.setItem(`userId_${userId}_files`, JSON.stringify(userFiles));
+      localStorage.setItem(`userId_${userId}_apiKey`, apiKey);
+      localStorage.setItem(`userId_${userId}_messages`, JSON.stringify(messages));
+      const now = new Date();
+      const timeString = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      localStorage.setItem(`userId_${userId}_lastSavedTime`, timeString);
+      setLastSavedTime(timeString);
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      const savedTime = localStorage.getItem(`userId_${userId}_lastSavedTime`);
+      setLastSavedTime(savedTime);
+    }
+  }, [userId]);
+
+  // 파일 내용이 변경될 때마다 분석 실행
+  useEffect(() => {
+    if (selectedFile?.content) {
+      const result = analyzeText(selectedFile.content);
+      setAnalysis(result);
+    } else {
+      setAnalysis(null);
+    }
+  }, [selectedFile?.content]);
+
+  // 글자수 계산을 위한 함수
+  const getCharCount = (text: string): number => {
+    if (!text) return 0;
+    return analyzeText(text).statistics.charCount;
+  };
+
   return (
     <main className="flex flex-col h-screen overflow-hidden bg-[#1e1e1e]">
       {/* 상단 타이틀 */}
       <div className="flex justify-center bg-[#1e1e1e] text-white border-b border-gray-700 relative flex-shrink-0">
         <div className="w-[calc(256px+800px+400px)] p-4 relative">
           <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center">
-            <SaveButton currentFile={selectedFile} />
+            <SaveButton currentFile={selectedFile} onSave={handleSave} />
             <History />
             <button
               onClick={() => {
@@ -328,11 +369,72 @@ export default function Home() {
                 }}
               />
             </label>
+            <button
+              onClick={() => setShowHelp(true)}
+              className="ml-2 w-6 h-6 rounded-full bg-gray-600 hover:bg-gray-500 flex items-center justify-center text-white text-sm transition-colors"
+              title="도움말"
+            >
+              ?
+            </button>
           </div>
           <h1 className="text-2xl font-bold text-center">필살 에디터 <span className="text-[0.7em]">: Designed for Web Novel Authors</span></h1>
           <UserIdInput />
         </div>
       </div>
+
+      {/* 도움말 모달 */}
+      {showHelp && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setShowHelp(false)}
+        >
+          <div 
+            className="bg-[#1e3246] rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b border-[#2a4a66]">
+              <h3 className="text-lg font-semibold text-white">필살 에디터 사용 가이드</h3>
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto text-white">
+              <div className="space-y-4">
+                <div className="text-gray-400 text-sm mb-6">
+                  개발자 : 혼각 (kyw6848@cuk.edu)
+                </div>
+                <section>
+                  <h4 className="text-lg font-semibold mb-2">기본 기능</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-gray-300">
+                    <li>좌측의 파일 탐색기에서 폴더와 파일을 생성하고 관리할 수 있습니다.</li>
+                    <li>중앙의 편집기에서 텍스트를 작성하고 수정할 수 있습니다.</li>
+                    <li>우측의 AI 비서를 통해 작성 중인 내용에 대해 조언을 받을 수 있습니다.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h4 className="text-lg font-semibold mb-2">파일 관리</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-gray-300">
+                    <li>상단의 저장 버튼을 통해 작업 내용을 저장할 수 있습니다.</li>
+                    <li>내보내기 버튼으로 전체 작업 내용을 파일로 저장할 수 있습니다.</li>
+                    <li>불러오기 버튼으로 이전에 저장한 작업을 복원할 수 있습니다.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h4 className="text-lg font-semibold mb-2">AI 비서 사용법</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-gray-300">
+                    <li>ChatGPT API 키를 입력하여 AI 비서 기능을 활성화할 수 있습니다.</li>
+                    <li>작성 중인 내용에 대한 조언이나 교정을 요청할 수 있습니다.</li>
+                    <li>대화형 인터페이스로 자연스러운 소통이 가능합니다.</li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 메인 컨텐츠 영역 */}
       <div className="flex flex-1 overflow-hidden justify-center">
@@ -345,7 +447,7 @@ export default function Home() {
         </div>
 
         {/* 중앙 에디터 */}
-        <div className="w-[800px] flex flex-col bg-[#1e1e1e]">
+        <div className="w-[700px] flex flex-col bg-[#1e1e1e]">
           {/* 편집기 타이틀 영역 */}
           <div className="p-2 border-b border-gray-700 flex items-center justify-between bg-[#252526]">
             <div className="flex items-center gap-4">
@@ -353,7 +455,8 @@ export default function Home() {
               {selectedFile && (
                 <span className="text-gray-400 text-sm">{selectedFile.name}</span>
               )}
-              <span className="text-gray-400 text-sm">글자수: {selectedFile?.content?.length || 0}자</span>
+              <span className="text-gray-400 text-sm">글자수: {selectedFile ? getCharCount(selectedFile.content) : 0}자</span>
+              {lastSavedTime && <span className="text-gray-400 text-sm">마지막 저장: {lastSavedTime}</span>}
             </div>
             <button
               onClick={() => {
@@ -390,8 +493,29 @@ export default function Home() {
               }}
             />
           </div>
-          <div className="h-32 border-t border-gray-700">
-            {/* 향후 컨텐츠를 위한 여백 */}
+          <div className="h-32 border-t border-gray-700 bg-[#1e1e1e]">
+            <AnalysisBoard analysis={analysis} />
+          </div>
+        </div>
+
+        {/* 편집기와 AI 비서 사이의 제어 영역 */}
+        <div className="w-[30px] bg-[#1e1e1e] text-white border-l border-r border-gray-700 flex flex-col">
+          <div className="flex items-center justify-center h-[42px] bg-[#252526]">
+            <h2 className="text-white text-xs font-semibold">제어</h2>
+          </div>
+          <div className="border-t border-gray-700"></div>
+          <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-1">
+            {[...Array(15)].map((_, index) => (
+              <button
+                key={index}
+                className="w-full h-[50px] bg-[#E67000] hover:bg-[#CC6600] text-white text-xs font-semibold flex items-center justify-center transition-colors"
+                onClick={() => {
+                  // 버튼 클릭 핸들러를 나중에 추가할 수 있습니다
+                }}
+              >
+                {index + 1}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -450,8 +574,8 @@ export default function Home() {
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
-                </div>
-              ))}
+            </div>
+          ))}
             </div>
 
             {/* AI 비서 채팅 입력 영역 */}

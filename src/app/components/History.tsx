@@ -47,18 +47,22 @@ export default function History() {
       {/* 히스토리 모달 */}
       {isOpen && (
         <div 
-          className="fixed bg-black bg-opacity-50 z-50"
+          className="fixed bg-black bg-opacity-50 z-[200]"
           style={{
             position: 'absolute',
-            top: buttonRef.current ? buttonRef.current.offsetHeight + 5 : 0,
-            left: buttonRef.current ? buttonRef.current.offsetWidth + 5 : 0,
-            width: '750px',
+            top: buttonRef.current ? buttonRef.current.offsetHeight + 15 : 0,
+            left: buttonRef.current ? buttonRef.current.offsetWidth + 80 : 0,
+            width: '600px',
             maxHeight: '600px'
           }}
+          onClick={() => setIsOpen(false)}
         >
-          <div className="bg-[#1e1e1e] text-white rounded-lg shadow-lg w-full overflow-hidden">
-            <div className="p-3 border-b border-gray-700 flex justify-between items-center">
-              <h2 className="text-lg font-bold">저장 기록</h2>
+          <div 
+            className="bg-[#1e3246] text-white rounded-lg shadow-lg w-full overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-2.5 border-b border-[#2a4a66] flex justify-between items-center">
+              <h2 className="text-base font-bold">저장 기록</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-white"
@@ -66,24 +70,24 @@ export default function History() {
                 ✕
               </button>
             </div>
-            <div className="p-4 overflow-y-auto" style={{ maxHeight: '500px' }}>
+            <div className="p-3 overflow-y-auto" style={{ maxHeight: '500px' }}>
               {!userId ? (
-                <p className="text-gray-400 text-sm">사용자 ID를 입력해주세요.</p>
+                <p className="text-gray-400 text-xs">사용자 ID를 입력해주세요.</p>
               ) : history.length === 0 ? (
-                <p className="text-gray-400 text-sm">저장 기록이 없습니다.</p>
+                <p className="text-gray-400 text-xs">저장 기록이 없습니다.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {history.map((entry, index) => (
                     <div
                       key={index}
-                      className="p-3 bg-[#252525] rounded flex items-center hover:bg-[#2a2a2a] transition-colors"
+                      className="p-2 bg-[#234863] rounded flex items-center hover:bg-[#2a5475] transition-colors"
                     >
-                      <div className="text-sm text-gray-400 min-w-[150px]">{entry.date}</div>
-                      <div className="font-medium text-base flex-1">{entry.fileName}</div>
-                      <div className="text-sm text-gray-400 ml-4">
+                      <div className="text-xs text-gray-400 min-w-[120px]">{entry.date}</div>
+                      <div className="font-medium text-sm flex-1">{entry.fileName}</div>
+                      <div className="text-xs text-gray-400 ml-2">
                         {entry.charCount.toLocaleString()}자
                       </div>
-                      <div className="text-sm text-gray-400 ml-4 min-w-[120px]">
+                      <div className="text-xs text-gray-400 ml-2 min-w-[80px]">
                         ID: {entry.userId || '-'}
                       </div>
                     </div>
